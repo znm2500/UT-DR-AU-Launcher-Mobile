@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="highlight">#FFFFFF00</color>
+    <color name="dim_text">#FF9A9A9A</color>
+    <color name="downloadable">#FF31A7FF</color>
+    <color name="playing">#FF00FF66</color>
+    <color name="panel_bg">#F2000000</color> <!-- rgba(0, 0, 0, 0.95) -->
+    <color name="card_bg">#F20F0F0F</color> <!-- rgba(15, 15, 15, 0.95) -->
+    <color name="tab_border">#FF444444</color>
+</resources>
