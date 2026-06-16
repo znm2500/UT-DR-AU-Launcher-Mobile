@@ -9,4 +9,5 @@
     <color name="panel_bg">#F2000000</color> <!-- rgba(0, 0, 0, 0.95) -->
     <color name="card_bg">#F20F0F0F</color> <!-- rgba(15, 15, 15, 0.95) -->
     <color name="tab_border">#FF444444</color>
+    <color name="transparent">#00000000</color>
 </resources>

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">UT-DR-AU-Launcher-Mobile</string>
+    <string name="app_name">AU Launcher</string>
     <string name="search_hint">搜索 AU 游戏...</string>
     <string name="menu_settings">设置</string>
     <string name="menu_upload">上传 AU</string>
