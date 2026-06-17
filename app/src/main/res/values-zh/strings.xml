@@ -50,4 +50,7 @@
     <string name="import_engine">引擎 (选填)</string>
     <string name="import_error_select_app">请选择一个应用</string>
     <string name="import_error_fill_name">请填写游戏名称</string>
+    <string name="announcement_title">公告</string>
+    <string name="update_title">新版本提示</string>
+    <string name="download">前往下载</string>
 </resources>

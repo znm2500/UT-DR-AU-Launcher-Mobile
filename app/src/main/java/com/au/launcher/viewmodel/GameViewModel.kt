@@ -7,8 +7,10 @@ import android.content.Intent
 import android.content.IntentFilter
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.au.launcher.api.ConfigResponse
 import com.au.launcher.api.GameModel
 import com.au.launcher.api.GameRepository
+import com.au.launcher.api.LocalizedString
 import com.au.launcher.utils.DownloadManager
 import com.au.launcher.utils.DownloadState
 import com.au.launcher.utils.PackageUtils
@@ -22,9 +24,17 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private var rawGames: List<GameModel> = emptyList()
     private var filteredGames: List<GameModel> = emptyList()
     private val downloadManager = DownloadManager(application)
+    private val prefs = application.getSharedPreferences("dialog_prefs", Context.MODE_PRIVATE)
 
     private val _pagedGames = MutableStateFlow<List<GameModel>>(emptyList())
     val pagedGames: StateFlow<List<GameModel>> = _pagedGames
+
+    // New state for dialogs
+    private val _announcementToShow = MutableStateFlow<LocalizedString?>(null)
+    val announcementToShow: StateFlow<LocalizedString?> = _announcementToShow
+
+    private val _updateToShow = MutableStateFlow<ConfigResponse?>(null)
+    val updateToShow: StateFlow<ConfigResponse?> = _updateToShow
 
     // Add a flow to track installed packages changes
     private val _installedPackagesUpdate = MutableStateFlow(System.currentTimeMillis())
@@ -53,6 +63,39 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         observePackageChanges()
     }
 
+    private fun checkForDialogs(config: ConfigResponse) {
+        val lastAnnEn = prefs.getString("last_ann_en", "")
+        val lastAnnZh = prefs.getString("last_ann_zh", "")
+        val lastVersion = prefs.getString("last_version", "")
+
+        if (config.announcement.en != lastAnnEn || config.announcement.zh != lastAnnZh) {
+            _announcementToShow.value = config.announcement
+        }
+
+        if (config.newestVersion != lastVersion) {
+            _updateToShow.value = config
+        }
+    }
+
+    fun dismissAnnouncement() {
+        _announcementToShow.value?.let {
+            prefs.edit()
+                .putString("last_ann_en", it.en)
+                .putString("last_ann_zh", it.zh)
+                .apply()
+        }
+        _announcementToShow.value = null
+    }
+
+    fun dismissUpdate() {
+        _updateToShow.value?.let {
+            prefs.edit()
+                .putString("last_version", it.newestVersion)
+                .apply()
+        }
+        _updateToShow.value = null
+    }
+
     private fun observePackageChanges() {
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
@@ -63,6 +106,18 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
+                val action = intent?.action
+                val packageName = intent?.data?.schemeSpecificPart
+
+                if (action == Intent.ACTION_PACKAGE_ADDED && packageName != null) {
+                    val isReplacing = intent.getBooleanExtra(Intent.EXTRA_REPLACING, false)
+                    if (!isReplacing) {
+                        viewModelScope.launch {
+                            repository.incrementHotScore(packageName)
+                        }
+                    }
+                }
+
                 viewModelScope.launch {
                     _installedPackagesUpdate.value = System.currentTimeMillis()
                 }
@@ -119,7 +174,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshGames(force: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
-            rawGames = repository.getGames(force)
+            val config = repository.getFullConfig(force)
+            rawGames = config.games
+            checkForDialogs(config)
             applyFilters()
             _isLoading.value = false
         }

@@ -19,11 +19,13 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -53,6 +55,8 @@ fun HomeScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val downloadStates by viewModel.downloadStates.collectAsState()
     val installedUpdate by viewModel.installedPackagesUpdate.collectAsState()
+    val announcementToShow by viewModel.announcementToShow.collectAsState()
+    val updateToShow by viewModel.updateToShow.collectAsState()
     val hasMore = viewModel.hasMore()
     val isRegionDetected by settingsViewModel.isRegionDetected.collectAsState()
     
@@ -67,6 +71,30 @@ fun HomeScreen(
     val bgBlur by settingsViewModel.bgBlur.collectAsState()
     val bgOpacity by settingsViewModel.bgOpacity.collectAsState()
     val maskColorInt by settingsViewModel.maskColor.collectAsState()
+    val context = LocalContext.current
+
+    if (announcementToShow != null) {
+        PixelDialog(
+            title = stringResource(R.string.announcement_title),
+            content = announcementToShow!!.get(language),
+            confirmText = stringResource(R.string.ok),
+            onConfirm = { viewModel.dismissAnnouncement() }
+        )
+    }
+
+    if (updateToShow != null) {
+        PixelDialog(
+            title = stringResource(R.string.update_title) + " " + updateToShow!!.newestVersion,
+            content = updateToShow!!.updateLog.get(language),
+            confirmText = stringResource(R.string.ok),
+            secondaryText = stringResource(R.string.download),
+            onConfirm = { viewModel.dismissUpdate() },
+            onSecondary = {
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://gitcode.com/znm2500/AUL-Mobile-Repo/releases"))
+                context.startActivity(intent)
+            }
+        )
+    }
 
     HomeScreenContent(
         games = games,
@@ -94,6 +122,121 @@ fun HomeScreen(
         onUploadClick = onNavigateToUpload,
         onImportClick = onNavigateToImport
     )
+}
+
+@Composable
+fun PixelDialog(
+    title: String,
+    content: String,
+    confirmText: String,
+    secondaryText: String? = null,
+    onConfirm: () -> Unit,
+    onSecondary: (() -> Unit)? = null
+) {
+    Dialog(onDismissRequest = {}) {
+        PixelDialogContent(
+            title = title,
+            content = content,
+            confirmText = confirmText,
+            secondaryText = secondaryText,
+            onConfirm = onConfirm,
+            onSecondary = onSecondary
+        )
+    }
+}
+
+@Composable
+fun PixelDialogContent(
+    title: String,
+    content: String,
+    confirmText: String,
+    secondaryText: String? = null,
+    onConfirm: () -> Unit,
+    onSecondary: (() -> Unit)? = null
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(5.dp, White, RectangleShape)
+            .background(Color(0xFF1A1A1A))
+            .padding(20.dp)
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text(
+                text = title.uppercase(),
+                color = Highlight,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FzxsFontFamily
+            )
+            
+            Text(
+                text = content,
+                color = White,
+                fontSize = 14.sp,
+                fontFamily = FzxsFontFamily,
+                lineHeight = 20.sp
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
+            ) {
+                if (secondaryText != null && onSecondary != null) {
+                    PixelDialogButton(text = secondaryText, onClick = onSecondary)
+                }
+                PixelDialogButton(text = confirmText, onClick = onConfirm)
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true, widthDp = 360, heightDp = 640)
+@Composable
+fun PixelAnnouncementDialogPreview() {
+    AULauncherTheme {
+        Box(
+            modifier = Modifier.fillMaxSize().background(Color.Gray),
+            contentAlignment = Alignment.Center
+        ) {
+            PixelDialogContent(
+                title = "ANNOUNCEMENT",
+                content = "Attention players!\n\nThe server will undergo maintenance tonight from 2:00 AM to 4:00 AM UTC. Please save your progress.\n\nThank you for your cooperation!",
+                confirmText = "OK",
+                secondaryText = null,
+                onConfirm = {},
+                onSecondary = null
+            )
+        }
+    }
+}
+
+@Composable
+fun PixelDialogButton(text: String, onClick: () -> Unit) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val color = if (isPressed) Highlight else White
+
+    Box(
+        modifier = Modifier
+            .border(5.dp, color, RectangleShape)
+            .background(Black)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text.uppercase(),
+            color = color,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            fontFamily = FzxsFontFamily
+        )
+    }
 }
 
 @Composable

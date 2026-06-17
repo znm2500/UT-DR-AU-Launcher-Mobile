@@ -19,7 +19,8 @@ class GameRepository(
     private val gameDao = GameDatabase.getDatabase(context).gameDao()
 
     suspend fun getGames(forceRefresh: Boolean = false): List<GameModel> {
-        val remoteGames = getRemoteGames(forceRefresh)
+        val config = getFullConfig(forceRefresh)
+        val remoteGames = config.games
         
         // Fetch local games and verify they are still installed
         val allLocalEntities = gameDao.getAllLocalGames()
@@ -50,22 +51,26 @@ class GameRepository(
         return validLocalGames + remoteGames
     }
 
-    private suspend fun getRemoteGames(forceRefresh: Boolean): List<GameModel> {
+    suspend fun getFullConfig(forceRefresh: Boolean): ConfigResponse {
         val cached = getCachedConfig()
         val timestamp = getCacheTimestamp()
         val isExpired = System.currentTimeMillis() - timestamp > CACHE_DURATION
 
         if (!forceRefresh && cached != null && !isExpired) {
-            return cached.games
+            return cached
         }
 
         return try {
             val response = api.getConfig(Constants.REPO_CONFIG_URL)
             saveConfig(response)
-            response.games
+            response
         } catch (e: Exception) {
-            cached?.games ?: emptyList()
+            cached ?: ConfigResponse("", LocalizedString("", ""), LocalizedString("", ""), emptyList())
         }
+    }
+
+    private suspend fun getRemoteGames(forceRefresh: Boolean): List<GameModel> {
+        return getFullConfig(forceRefresh).games
     }
 
     suspend fun addLocalGame(game: GameEntity) {
@@ -74,6 +79,67 @@ class GameRepository(
 
     suspend fun removeLocalGame(entity: GameEntity) {
         gameDao.deleteGame(entity)
+    }
+
+    suspend fun incrementHotScore(packageName: String) {
+        if (!Constants.isChinaRegion) return
+
+        try {
+            val owner = "znm2500"
+            val repo = "AUL-Mobile-Repo"
+            val path = "config.json"
+            val branch = "data"
+            val token = "ZNzRgfc8kf3PAxezKQ77dkyb"
+
+            // 1. Get current file info (V5 returns base64 content and sha)
+            val fileResponse = RetrofitClient.gitCodeApi.getFileV5(owner, repo, path, branch, token)
+            
+            // 2. Decode content
+            val decodedBytes = android.util.Base64.decode(fileResponse.content, android.util.Base64.DEFAULT)
+            val jsonString = String(decodedBytes, Charsets.UTF_8)
+            val config = gson.fromJson(jsonString, ConfigResponse::class.java)
+
+            // 3. Find game and increment score
+            var found = false
+            val updatedGames = config.games.map { game ->
+                val gamePackage = game.packageName ?: PackageUtils.getPackageNameFromId(game.id)
+                if (gamePackage == packageName) {
+                    found = true
+                    game.copy(hotScore = game.hotScore + 1)
+                } else {
+                    game
+                }
+            }
+
+            if (!found) return
+
+            val updatedConfig = config.copy(games = updatedGames)
+            val updatedJson = gson.toJson(updatedConfig)
+            val encodedContent = android.util.Base64.encodeToString(
+                updatedJson.toByteArray(Charsets.UTF_8),
+                android.util.Base64.NO_WRAP
+            )
+
+            // 4. Update file back to GitCode V5
+            val response = RetrofitClient.gitCodeApi.updateFileV5(
+                owner,
+                repo,
+                path,
+                token,
+                UpdateFileRequestV5(
+                    content = encodedContent,
+                    message = "Increment hot score for $packageName",
+                    sha = fileResponse.sha,
+                    branch = branch
+                )
+            )
+            
+            if (!response.isSuccessful) {
+                android.util.Log.e("GameRepository", "Failed to update hot score (V5): ${response.errorBody()?.string()}")
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun getCachedConfig(): ConfigResponse? {

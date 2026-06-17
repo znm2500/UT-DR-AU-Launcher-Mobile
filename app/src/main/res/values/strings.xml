@@ -50,4 +50,7 @@
     <string name="import_engine">ENGINE (OPTIONAL)</string>
     <string name="import_error_select_app">PLEASE SELECT AN APP</string>
     <string name="import_error_fill_name">PLEASE FILL GAME NAME</string>
+    <string name="announcement_title">ANNOUNCEMENT</string>
+    <string name="update_title">NEW VERSION</string>
+    <string name="download">DOWNLOAD</string>
 </resources>

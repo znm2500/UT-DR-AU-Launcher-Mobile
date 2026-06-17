@@ -13,6 +13,10 @@ object RetrofitClient {
     var gameApi: GameApi = createRetrofit(Constants.BASE_URL).create(GameApi::class.java)
         private set
 
+    val gitCodeApi: GameApi by lazy {
+        createRetrofit("https://api.gitcode.com/api/v5/").create(GameApi::class.java)
+    }
+
     fun refreshApi() {
         gameApi = createRetrofit(Constants.BASE_URL).create(GameApi::class.java)
     }
