@@ -36,6 +36,7 @@ import com.au.launcher.ui.components.GameCard
 import com.au.launcher.ui.components.GameStatus
 import com.au.launcher.ui.components.TopSearchBar
 import com.au.launcher.ui.theme.*
+import com.au.launcher.utils.Constants
 import com.au.launcher.utils.DownloadState
 import com.au.launcher.viewmodel.GameViewModel
 import com.au.launcher.viewmodel.SettingsViewModel
@@ -57,6 +58,7 @@ fun HomeScreen(
     val installedUpdate by viewModel.installedPackagesUpdate.collectAsState()
     val announcementToShow by viewModel.announcementToShow.collectAsState()
     val updateToShow by viewModel.updateToShow.collectAsState()
+    var gameIdToRemove by remember { mutableStateOf<String?>(null) }
     val hasMore = viewModel.hasMore()
     val isRegionDetected by settingsViewModel.isRegionDetected.collectAsState()
     
@@ -90,8 +92,24 @@ fun HomeScreen(
             secondaryText = stringResource(R.string.download),
             onConfirm = { viewModel.dismissUpdate() },
             onSecondary = {
-                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse("https://gitcode.com/znm2500/AUL-Mobile-Repo/releases"))
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(Constants.UPDATE_PAGE_URL))
                 context.startActivity(intent)
+            }
+        )
+    }
+
+    if (gameIdToRemove != null) {
+        PixelDialog(
+            title = stringResource(R.string.remove_confirm_title),
+            content = stringResource(R.string.remove_confirm_msg),
+            confirmText = stringResource(R.string.ok),
+            secondaryText = stringResource(R.string.cancel),
+            onConfirm = {
+                viewModel.removeLocalGame(gameIdToRemove!!)
+                gameIdToRemove = null
+            },
+            onSecondary = {
+                gameIdToRemove = null
             }
         )
     }
@@ -118,6 +136,7 @@ fun HomeScreen(
             viewModel.isInstalled(id) 
         },
         onGameAction = { game -> viewModel.handleGameAction(game.id, game) },
+        onRemoveLocal = { id -> gameIdToRemove = id },
         onSettingsClick = onNavigateToSettings,
         onUploadClick = onNavigateToUpload,
         onImportClick = onNavigateToImport
@@ -258,6 +277,7 @@ fun HomeScreenContent(
     onLoadMore: () -> Unit,
     isInstalled: (String) -> Boolean,
     onGameAction: (GameModel) -> Unit,
+    onRemoveLocal: (String) -> Unit,
     onSettingsClick: () -> Unit,
     onUploadClick: () -> Unit,
     onImportClick: () -> Unit
@@ -417,9 +437,13 @@ fun HomeScreenContent(
                             status = cardStatus,
                             coverUrl = game.localCoverUri,
                             downloadState = downloadState,
+                            isLocal = game.isLocal,
                             onActionClick = {
                                 onGameAction(game)
                             },
+                            onRemoveClick = {
+                                onRemoveLocal(game.id)
+                            }
                         )
                     }
 
@@ -498,6 +522,7 @@ fun HomeScreenPreview() {
             onLoadMore = {},
             isInstalled = { id -> id == "game_1" || id == "game_3" },
             onGameAction = {},
+            onRemoveLocal = {},
             onSettingsClick = {},
             onUploadClick = {},
             onImportClick = {}

@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -8,14 +10,24 @@ android {
     namespace = "com.au.launcher"
     compileSdk = 35
 
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { localProperties.load(it) }
+    }
+    val gitcodeToken = localProperties.getProperty("gitcode.token") ?: ""
+    val webhookKey = localProperties.getProperty("webhook.key") ?: ""
+
     defaultConfig {
         applicationId = "com.au.launcher"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "GITCODE_TOKEN", "\"$gitcodeToken\"")
+        buildConfigField("String", "WEBHOOK_KEY", "\"$webhookKey\"")
     }
 
     buildTypes {
@@ -33,6 +45,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

@@ -53,4 +53,7 @@
     <string name="announcement_title">ANNOUNCEMENT</string>
     <string name="update_title">NEW VERSION</string>
     <string name="download">DOWNLOAD</string>
+    <string name="remove_confirm_title">REMOVE GAME</string>
+    <string name="remove_confirm_msg">Are you sure you want to remove this local game from the list?</string>
+    <string name="cancel">CANCEL</string>
 </resources>

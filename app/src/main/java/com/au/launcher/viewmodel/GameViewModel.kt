@@ -67,12 +67,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val lastAnnEn = prefs.getString("last_ann_en", "")
         val lastAnnZh = prefs.getString("last_ann_zh", "")
         val lastVersion = prefs.getString("last_version", "")
+        val currentVersion = PackageUtils.getAppVersionName(getApplication())
 
         if (config.announcement.en != lastAnnEn || config.announcement.zh != lastAnnZh) {
             _announcementToShow.value = config.announcement
         }
 
-        if (config.newestVersion != lastVersion) {
+        if (config.newestVersion != currentVersion && config.newestVersion != lastVersion) {
             _updateToShow.value = config
         }
     }
@@ -175,7 +176,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             _isLoading.value = true
             val config = repository.getFullConfig(force)
-            rawGames = config.games
+            rawGames = repository.getGames(force)
             checkForDialogs(config)
             applyFilters()
             _isLoading.value = false
@@ -241,5 +242,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     fun hasMore(): Boolean {
         return _pagedGames.value.size < filteredGames.size
+    }
+
+    fun removeLocalGame(id: String) {
+        viewModelScope.launch {
+            repository.removeLocalGameById(id)
+            refreshGames()
+        }
     }
 }

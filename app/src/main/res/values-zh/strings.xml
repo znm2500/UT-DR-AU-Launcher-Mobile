@@ -53,4 +53,7 @@
     <string name="announcement_title">公告</string>
     <string name="update_title">新版本提示</string>
     <string name="download">前往下载</string>
+    <string name="remove_confirm_title">移除游戏</string>
+    <string name="remove_confirm_msg">确定要从列表中移除这个本地导入的游戏吗？</string>
+    <string name="cancel">取消</string>
 </resources>

@@ -1,12 +1,13 @@
 package com.au.launcher.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -32,6 +33,7 @@ enum class GameStatus {
     INSTALLED, DOWNLOADABLE, DOWNLOADING
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GameCard(
     id: String,
@@ -41,7 +43,9 @@ fun GameCard(
     status: GameStatus,
     coverUrl: String? = null,          // 保留外部可覆盖的 URL
     downloadState: DownloadState? = null,
+    isLocal: Boolean = false,           // 新增 isLocal
     onActionClick: () -> Unit,
+    onRemoveClick: (() -> Unit)? = null, // 新增 onRemoveClick
     modifier: Modifier = Modifier       // 新增 modifier 参数
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -63,6 +67,12 @@ fun GameCard(
             .padding(bottom = 18.dp)
             .border(5.dp, White)
             .background(CardBg)
+            .combinedClickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {},
+                onLongClick = if (isLocal) onRemoveClick else null
+            )
     ) {
         // Cover 区域：带 fallback 的图片
         Box(

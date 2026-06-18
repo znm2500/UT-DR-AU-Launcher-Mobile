@@ -15,6 +15,10 @@ object Constants {
     const val IMAGE_BASE_URL_CN = "https://gitcode.com/znm2500/AUL-Mobile-Repo/raw/data/"
 
     const val DOWNLOAD_URL_CN = "https://gitcode.com/znm1145/AUL-Mobile-Repo/releases/download/"
+    
+    const val UPDATE_PAGE_URL_GLOBAL = "https://github.com/znm2500/UT-DR-AU-Launcher-Mobile/releases"
+    const val UPDATE_PAGE_URL_CN = "https://1815094438.share.123pan.cn/123pan/lV6eVv-XzyHh"
+
     var isChinaRegion = false
 
     val BASE_URL: String
@@ -26,6 +30,9 @@ object Constants {
         get() = if (isChinaRegion) DOWNLOAD_URL_CN else DOWNLOAD_URL_GLOBAL
     val IMAGE_BASE_URL: String
         get() = if (isChinaRegion) IMAGE_BASE_URL_CN else IMAGE_BASE_URL_GLOBAL
+    
+    val UPDATE_PAGE_URL: String
+        get() = if (isChinaRegion) UPDATE_PAGE_URL_CN else UPDATE_PAGE_URL_GLOBAL
 
     const val DATABASE_NAME = "game_database"
     const val DEFAULT_COVER =

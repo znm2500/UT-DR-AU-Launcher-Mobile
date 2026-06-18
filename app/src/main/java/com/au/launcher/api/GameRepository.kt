@@ -81,6 +81,10 @@ class GameRepository(
         gameDao.deleteGame(entity)
     }
 
+    suspend fun removeLocalGameById(id: String) {
+        gameDao.deleteGameById(id)
+    }
+
     suspend fun incrementHotScore(packageName: String) {
         if (!Constants.isChinaRegion) return
 
@@ -89,7 +93,7 @@ class GameRepository(
             val repo = "AUL-Mobile-Repo"
             val path = "config.json"
             val branch = "data"
-            val token = "ZNzRgfc8kf3PAxezKQ77dkyb"
+            val token = com.au.launcher.BuildConfig.GITCODE_TOKEN
 
             // 1. Get current file info (V5 returns base64 content and sha)
             val fileResponse = RetrofitClient.gitCodeApi.getFileV5(owner, repo, path, branch, token)

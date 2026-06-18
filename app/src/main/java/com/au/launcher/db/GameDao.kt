@@ -12,4 +12,7 @@ interface GameDao {
 
     @Delete
     suspend fun deleteGame(game: GameEntity)
+
+    @Query("DELETE FROM local_games WHERE id = :id")
+    suspend fun deleteGameById(id: String)
 }

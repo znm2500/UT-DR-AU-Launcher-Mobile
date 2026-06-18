@@ -36,6 +36,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import com.au.launcher.BuildConfig
 import com.au.launcher.R
 import com.au.launcher.api.*
 import com.au.launcher.ui.theme.*
@@ -99,7 +100,7 @@ class UploadViewModel : ViewModel() {
                             .joinToString("") { "%02x".format(it) }
 
                         RetrofitClient.webhookApi.sendMessage(
-                            key = "9c34b350-f8e9-4508-b5f9-2364eb84166c",
+                            key = BuildConfig.WEBHOOK_KEY,
                             message = WebhookMessage(
                                 msgtype = "image",
                                 image = ImageContent(base64 = base64, md5 = md5)
@@ -121,7 +122,7 @@ class UploadViewModel : ViewModel() {
                 """.trimIndent()
 
                 RetrofitClient.webhookApi.sendMessage(
-                    key = "9c34b350-f8e9-4508-b5f9-2364eb84166c",
+                    key = BuildConfig.WEBHOOK_KEY,
                     message = WebhookMessage(
                         msgtype = "markdown",
                         markdown = MarkdownContent(markdownContent)

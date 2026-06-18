@@ -36,6 +36,15 @@ object PackageUtils {
             )
         }.sortedBy { it.name }
     }
+
+    fun getAppVersionName(context: Context): String {
+        return try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            packageInfo.versionName ?: ""
+        } catch (e: Exception) {
+            ""
+        }
+    }
 }
 
 data class AppInfo(val name: String, val packageName: String)

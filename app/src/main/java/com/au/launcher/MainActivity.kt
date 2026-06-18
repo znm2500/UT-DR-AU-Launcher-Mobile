@@ -55,7 +55,10 @@ fun AppNavigation() {
             UploadScreen(onBack = { navController.popBackStack() })
         }
         composable("import") {
-            ImportScreen(onBack = { navController.popBackStack() })
+            ImportScreen(onBack = { 
+                gameViewModel.refreshGames()
+                navController.popBackStack() 
+            })
         }
     }
 }
