@@ -9,23 +9,29 @@ interface GameApi {
 
     // GitCode V5 API
     @GET("repos/{owner}/{repo}/contents/{path}")
+    @Headers("Accept: application/json")
     suspend fun getFileV5(
         @Path("owner") owner: String,
         @Path("repo") repo: String,
         @Path("path") path: String,
         @Query("ref") ref: String,
-        @Query("access_token") token: String
+        @Query("access_token") token: String?
     ): GitCodeFileResponse
 
     @PUT("repos/{owner}/{repo}/contents/{path}")
+    @Headers("Accept: application/json", "Content-Type: application/json")
     suspend fun updateFileV5(
         @Path("owner") owner: String,
         @Path("repo") repo: String,
         @Path("path") path: String,
         @Query("access_token") token: String,
         @Body body: UpdateFileRequestV5
-    ): Response<Unit>
+    ): Response<GitCodeUpdateResponse>
 }
+
+data class GitCodeUpdateResponse(
+    val content: GitCodeFileResponse?
+)
 
 data class GitCodeFileResponse(
     val content: String,

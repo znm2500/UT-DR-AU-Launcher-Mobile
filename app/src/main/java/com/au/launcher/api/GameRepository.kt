@@ -5,24 +5,47 @@ import com.au.launcher.db.GameDatabase
 import com.au.launcher.db.GameEntity
 import com.au.launcher.utils.Constants
 import com.au.launcher.utils.PackageUtils
-import com.google.gson.Gson
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 
 class GameRepository(
     private val context: Context,
     private val api: GameApi = RetrofitClient.gameApi
 ) {
-    private val gson = Gson()
+    private val gson = com.google.gson.GsonBuilder().setPrettyPrinting().create()
     private val PREFS_NAME = "game_cache"
     private val KEY_CONFIG = "cached_config"
     private val KEY_TIMESTAMP = "cache_timestamp"
     private val CACHE_DURATION = 30 * 60 * 1000 // 30 minutes
     private val gameDao = GameDatabase.getDatabase(context).gameDao()
 
-    suspend fun getGames(forceRefresh: Boolean = false): List<GameModel> {
-        val config = getFullConfig(forceRefresh)
-        val remoteGames = config.games
+    fun getGamesFlow(forceRefresh: Boolean = false): Flow<List<GameModel>> = flow {
+        // 1. Emits cached data immediately if it exists
+        val cachedConfig = getCachedConfig()
+        if (cachedConfig != null) {
+            emit(combineWithLocalGames(cachedConfig))
+        }
+
+        // 2. Fetch from network if forced or expired or no cache
+        val timestamp = getCacheTimestamp()
+        val isExpired = System.currentTimeMillis() - timestamp > CACHE_DURATION
         
-        // Fetch local games and verify they are still installed
+        if (forceRefresh || isExpired || cachedConfig == null) {
+            try {
+                val remoteConfig = api.getConfig(Constants.REPO_CONFIG_URL)
+                saveConfig(remoteConfig)
+                emit(combineWithLocalGames(remoteConfig))
+            } catch (e: Exception) {
+                // Network failed, if we haven't emitted anything, emit empty list
+                if (cachedConfig == null) {
+                    emit(combineWithLocalGames(ConfigResponse("", LocalizedString("", ""), LocalizedString("", ""), emptyList())))
+                }
+            }
+        }
+    }
+
+    private suspend fun combineWithLocalGames(config: ConfigResponse): List<GameModel> {
+        val remoteGames = config.games
         val allLocalEntities = gameDao.getAllLocalGames()
         val validLocalGames = mutableListOf<GameModel>()
         
@@ -43,12 +66,35 @@ class GameRepository(
                     )
                 )
             } else {
-                // Auto-remove if uninstalled
                 gameDao.deleteGame(entity)
             }
         }
-        
         return validLocalGames + remoteGames
+    }
+
+    fun getFullConfigFlow(forceRefresh: Boolean): Flow<ConfigResponse> = flow {
+        val cached = getCachedConfig()
+        if (cached != null) emit(cached)
+
+        val timestamp = getCacheTimestamp()
+        val isExpired = System.currentTimeMillis() - timestamp > CACHE_DURATION
+
+        if (forceRefresh || isExpired || cached == null) {
+            try {
+                val response = api.getConfig(Constants.REPO_CONFIG_URL)
+                saveConfig(response)
+                emit(response)
+            } catch (e: Exception) {
+                if (cached == null) {
+                    emit(ConfigResponse("", LocalizedString("", ""), LocalizedString("", ""), emptyList()))
+                }
+            }
+        }
+    }
+
+    suspend fun getGames(forceRefresh: Boolean = false): List<GameModel> {
+        val config = getFullConfig(forceRefresh)
+        return combineWithLocalGames(config)
     }
 
     suspend fun getFullConfig(forceRefresh: Boolean): ConfigResponse {
@@ -96,33 +142,50 @@ class GameRepository(
             val token = com.au.launcher.BuildConfig.GITCODE_TOKEN
 
             // 1. Get current file info (V5 returns base64 content and sha)
-            val fileResponse = RetrofitClient.gitCodeApi.getFileV5(owner, repo, path, branch, token)
+            val fileResponse = RetrofitClient.gitCodeApi.getFileV5(owner, repo, path, branch, token.takeIf { it.isNotEmpty() })
             
             // 2. Decode content
-            val decodedBytes = android.util.Base64.decode(fileResponse.content, android.util.Base64.DEFAULT)
+            val contentStr = fileResponse.content.replace("\n", "")
+            val decodedBytes = android.util.Base64.decode(contentStr, android.util.Base64.DEFAULT)
             val jsonString = String(decodedBytes, Charsets.UTF_8)
             val config = gson.fromJson(jsonString, ConfigResponse::class.java)
 
             // 3. Find game and increment score
             var found = false
             val updatedGames = config.games.map { game ->
+                // The trigger provides the system packageName. 
+                // We compare it against the game's packageName OR its id (which is often related).
                 val gamePackage = game.packageName ?: PackageUtils.getPackageNameFromId(game.id)
-                if (gamePackage == packageName) {
+                if (gamePackage == packageName || game.id == packageName) {
                     found = true
+                    android.util.Log.d("GameRepository", "Found game to increment: ${game.id}")
                     game.copy(hotScore = game.hotScore + 1)
                 } else {
                     game
                 }
             }
 
-            if (!found) return
+            if (!found) {
+                android.util.Log.w("GameRepository", "Game not found in config: $packageName")
+                return
+            }
+
+            // If we found the game but don't have a token, we can't update
+            if (token.isEmpty()) {
+                android.util.Log.e("GameRepository", "Cannot update hot score: GitCode token is empty")
+                return
+            }
 
             val updatedConfig = config.copy(games = updatedGames)
             val updatedJson = gson.toJson(updatedConfig)
+            // Match Rust's formatting: pretty printing and trailing newline
+            val contentWithNewline = updatedJson + "\n"
             val encodedContent = android.util.Base64.encodeToString(
-                updatedJson.toByteArray(Charsets.UTF_8),
+                contentWithNewline.toByteArray(Charsets.UTF_8),
                 android.util.Base64.NO_WRAP
             )
+
+            android.util.Log.d("GameRepository", "Updating file with SHA: ${fileResponse.sha}")
 
             // 4. Update file back to GitCode V5
             val response = RetrofitClient.gitCodeApi.updateFileV5(
@@ -132,21 +195,27 @@ class GameRepository(
                 token,
                 UpdateFileRequestV5(
                     content = encodedContent,
-                    message = "Increment hot score for $packageName",
+                    message = "chore: bump hot_score for $packageName",
                     sha = fileResponse.sha,
                     branch = branch
                 )
             )
             
-            if (!response.isSuccessful) {
-                android.util.Log.e("GameRepository", "Failed to update hot score (V5): ${response.errorBody()?.string()}")
+            if (response.isSuccessful) {
+                android.util.Log.d("GameRepository", "Successfully incremented hot score for $packageName")
+                // Clear cache timestamp to force next refresh to be from network
+                val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                prefs.edit().putLong(KEY_TIMESTAMP, 0L).apply()
+            } else {
+                val errorBody = response.errorBody()?.string()
+                android.util.Log.e("GameRepository", "Failed to update hot score (V5): ${response.code()} $errorBody")
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            android.util.Log.e("GameRepository", "Error in incrementHotScore", e)
         }
     }
 
-    private fun getCachedConfig(): ConfigResponse? {
+    fun getCachedConfig(): ConfigResponse? {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val json = prefs.getString(KEY_CONFIG, null)
         return if (json != null) {

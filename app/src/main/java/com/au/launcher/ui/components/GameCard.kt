@@ -53,12 +53,14 @@ fun GameCard(
     val contentColor = if (isPressed) Highlight else White
 
     // 定义备用 URL 列表（按优先级）
-    val fallbackUrls = remember(id) {
-        listOf(
-            "${Constants.IMAGE_BASE_URL_GLOBAL}${id}.webp",   // 首选 webp
-            "${Constants.IMAGE_BASE_URL_CN}${id}.webp",
-            // 可以再加第三个 CDN 或本地 assets 的特定 URL
-        )
+    val fallbackUrls = remember(id, coverUrl) {
+        val list = mutableListOf<String>()
+        if (!coverUrl.isNullOrEmpty()) {
+            list.add(coverUrl)
+        }
+        list.add("${Constants.IMAGE_BASE_URL_GLOBAL}${id}.webp")
+        list.add("${Constants.IMAGE_BASE_URL_CN}${id}.webp")
+        list
     }
 
     Column(
@@ -183,7 +185,8 @@ private fun FallbackImage(
     contentDescription: String? = null,
     contentScale: ContentScale = ContentScale.Fit,
 ) {
-    var currentIndex by remember { mutableIntStateOf(0) }
+    val context = LocalContext.current
+    var currentIndex by remember(urls) { mutableIntStateOf(0) }
     val currentUrl = urls.getOrNull(currentIndex)
 
     if (currentUrl == null) {
@@ -195,21 +198,25 @@ private fun FallbackImage(
             contentScale = contentScale
         )
     } else {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
+        val model = remember(currentUrl) {
+            ImageRequest.Builder(context)
                 .data(currentUrl)
+                .crossfade(true)
                 .listener(
                     onError = { _, _ ->
-                        // 当前 URL 加载失败，尝试下一个
                         currentIndex++
                     }
                 )
-                .build(),
+                .build()
+        }
+
+        AsyncImage(
+            model = model,
             contentDescription = contentDescription,
             modifier = modifier,
             contentScale = contentScale,
-            placeholder = painterResource(R.drawable.ic_default_cover),  // 加载中占位图
-            error = painterResource(defaultResId)                     // 最终错误占位图（兜底）
+            placeholder = painterResource(R.drawable.ic_default_cover),
+            error = painterResource(defaultResId)
         )
     }
 }

@@ -115,6 +115,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                     if (!isReplacing) {
                         viewModelScope.launch {
                             repository.incrementHotScore(packageName)
+                            // Force refresh from network after incrementing
+                            refreshGames(force = true)
                         }
                     }
                 }
@@ -175,11 +177,18 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun refreshGames(force: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
-            val config = repository.getFullConfig(force)
-            rawGames = repository.getGames(force)
-            checkForDialogs(config)
-            applyFilters()
-            _isLoading.value = false
+            
+            // Use Flow for "Cache First, then Network" strategy
+            repository.getGamesFlow(force).collect { games ->
+                rawGames = games
+                applyFilters()
+                // Initial check for dialogs when first data arrives
+                if (_announcementToShow.value == null && _updateToShow.value == null) {
+                    val config = repository.getCachedConfig()
+                    if (config != null) checkForDialogs(config)
+                }
+                _isLoading.value = false
+            }
         }
     }
 
