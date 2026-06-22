@@ -58,22 +58,40 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val PAGE_SIZE = 8
 
     init {
-        android.util.Log.d("GameViewModel", "GameViewModel initialized with version 0.1.1")
+        android.util.Log.d("GameViewModel", "GameViewModel initialized with version ${com.au.launcher.BuildConfig.VERSION_NAME}")
         refreshGames()
         observeDownloadStates()
         observePackageChanges()
+    }
+
+    private fun isNewerVersion(newVersion: String, currentVersion: String): Boolean {
+        return try {
+            val newParts = newVersion.split(".").map { it.toInt() }
+            val currentParts = currentVersion.split(".").map { it.toInt() }
+            val length = maxOf(newParts.size, currentParts.size)
+            for (i in 0 until length) {
+                val v1 = if (i < newParts.size) newParts[i] else 0
+                val v2 = if (i < currentParts.size) currentParts[i] else 0
+                if (v1 > v2) return true
+                if (v1 < v2) return false
+            }
+            false
+        } catch (e: Exception) {
+            false
+        }
     }
 
     private fun checkForDialogs(config: ConfigResponse) {
         val lastAnnEn = prefs.getString("last_ann_en", "")
         val lastAnnZh = prefs.getString("last_ann_zh", "")
         val lastVersion = prefs.getString("last_version", "")
+        val currentVersion = com.au.launcher.BuildConfig.VERSION_NAME
 
         if (config.announcement.en != lastAnnEn || config.announcement.zh != lastAnnZh) {
             _announcementToShow.value = config.announcement
         }
 
-        if (config.newestVersion != lastVersion) {
+        if (isNewerVersion(config.newestVersion, currentVersion) && config.newestVersion != lastVersion) {
             _updateToShow.value = config
         }
     }
