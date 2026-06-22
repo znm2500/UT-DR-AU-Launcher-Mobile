@@ -94,7 +94,10 @@ fun TopSearchBar(
                 .clickable(
                     interactionSource = menuInteractionSource,
                     indication = null
-                ) { expanded = true },
+                ) { 
+                    com.au.launcher.utils.SoundHelper.playClick()
+                    expanded = true 
+                },
             contentAlignment = Alignment.Center
         ) {
             Column(
@@ -121,6 +124,7 @@ fun TopSearchBar(
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.menu_settings), color = White, fontFamily = FzxsFontFamily) },
                     onClick = {
+                        com.au.launcher.utils.SoundHelper.playClick()
                         expanded = false
                         onSettingsClick()
                     }
@@ -129,6 +133,7 @@ fun TopSearchBar(
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.menu_upload), color = White, fontFamily = FzxsFontFamily) },
                     onClick = {
+                        com.au.launcher.utils.SoundHelper.playClick()
                         expanded = false
                         onUploadClick()
                     }
@@ -137,6 +142,7 @@ fun TopSearchBar(
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.menu_import), color = White, fontFamily = FzxsFontFamily) },
                     onClick = {
+                        com.au.launcher.utils.SoundHelper.playClick()
                         expanded = false
                         onImportClick()
                     }

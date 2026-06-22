@@ -194,6 +194,7 @@ fun UploadScreen(
                             interactionSource = interactionSource,
                             indication = null
                         ) {
+                            com.au.launcher.utils.SoundHelper.playConfirm()
                             viewModel.showSuccessDialog = false
                         }
                         .padding(horizontal = 16.dp, vertical = 8.dp)
@@ -259,7 +260,10 @@ fun UploadScreen(
                             .size(44.dp)
                             .border(5.dp, White, RectangleShape)
                             .background(Black.copy(alpha = 0.7f))
-                            .clickable { onBack() },
+                            .clickable { 
+                                com.au.launcher.utils.SoundHelper.playCancel()
+                                onBack() 
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = White)
@@ -341,6 +345,7 @@ fun UploadScreen(
                         .border(5.dp, if (!isButtonEnabled) DimText else White, RectangleShape)
                         .background(if (!isButtonEnabled) Color(0xFF1A1A1A) else Black.copy(alpha = 0.7f))
                         .clickable(enabled = isButtonEnabled) { 
+                            com.au.launcher.utils.SoundHelper.playConfirm()
                             viewModel.upload(context, statusFillFields, statusUploading, statusError, statusCooldown, descHint)
                         }
                         .padding(16.dp),
@@ -368,7 +373,10 @@ fun UploadPicker(label: String, selectedUri: Uri?, modifier: Modifier = Modifier
             .height(200.dp)
             .border(5.dp, if (selectedUri != null) Highlight else White, RectangleShape)
             .background(Black.copy(alpha = 0.7f))
-            .clickable { onClick() },
+            .clickable { 
+                com.au.launcher.utils.SoundHelper.playSwitch()
+                onClick() 
+            },
         contentAlignment = Alignment.Center
     ) {
         if (selectedUri != null) {

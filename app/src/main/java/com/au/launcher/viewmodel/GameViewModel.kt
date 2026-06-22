@@ -58,6 +58,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val PAGE_SIZE = 8
 
     init {
+        android.util.Log.d("GameViewModel", "GameViewModel initialized with version 0.1.1")
         refreshGames()
         observeDownloadStates()
         observePackageChanges()
@@ -127,7 +128,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        getApplication<Application>().registerReceiver(receiver, filter)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            getApplication<Application>().registerReceiver(receiver, filter, Context.RECEIVER_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            getApplication<Application>().registerReceiver(receiver, filter)
+        }
     }
 
     private fun observeDownloadStates() {
@@ -180,11 +186,14 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             
             // Use Flow for "Cache First, then Network" strategy
             repository.getGamesFlow(force).collect { games ->
+                android.util.Log.d("GameViewModel", "Fetched ${games.size} games from repository")
+                val config = repository.getCachedConfig()
+                android.util.Log.d("GameViewModel", "Cached Config: $config")
+                
                 rawGames = games
                 applyFilters()
                 // Initial check for dialogs when first data arrives
                 if (_announcementToShow.value == null && _updateToShow.value == null) {
-                    val config = repository.getCachedConfig()
                     if (config != null) checkForDialogs(config)
                 }
                 _isLoading.value = false
@@ -206,11 +215,20 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private fun applyFilters() {
         val category = _currentCategory.value
         val query = _searchQuery.value.trim().lowercase()
+        android.util.Log.d("GameViewModel", "Applying filters for category: $category, query: $query")
 
         // 1. Category filter & sorting
         var result = when (category) {
             "INSTALLED" -> rawGames.filter { isInstalled(it.id) }
-            "HOT" -> rawGames.sortedByDescending { it.hotScore }
+            "HOT" -> {
+                val sorted = rawGames.sortedByDescending { it.hotScore }
+                // Log the top 5 games to verify sorting
+                android.util.Log.d("GameViewModel", "--- HOT Category Sorting Verification ---")
+                sorted.take(5).forEachIndexed { index, game ->
+                    android.util.Log.d("GameViewModel", "#${index + 1}: ${game.name.zh} (Score: ${game.hotScore}, ID: ${game.id})")
+                }
+                sorted
+            }
             "NEW" -> rawGames.sortedByDescending { it.publishTime }
             else -> rawGames
         }

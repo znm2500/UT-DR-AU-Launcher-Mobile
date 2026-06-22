@@ -97,7 +97,10 @@ fun SettingsScreen(
                             .size(44.dp)
                             .border(5.dp, White, RectangleShape)
                             .background(Black)
-                            .clickable { onBack() },
+                            .clickable { 
+                                com.au.launcher.utils.SoundHelper.playCancel()
+                                onBack() 
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -142,12 +145,18 @@ fun SettingsScreen(
                         LanguageButton(
                             text = stringResource(R.string.lang_en),
                             isActive = language == "en",
-                            onClick = { viewModel.setLanguage("en") }
+                            onClick = { 
+                                com.au.launcher.utils.SoundHelper.playSwitch()
+                                viewModel.setLanguage("en") 
+                            }
                         )
                         LanguageButton(
                             text = stringResource(R.string.lang_zh),
                             isActive = language == "zh",
-                            onClick = { viewModel.setLanguage("zh") }
+                            onClick = { 
+                                com.au.launcher.utils.SoundHelper.playSwitch()
+                                viewModel.setLanguage("zh") 
+                            }
                         )
                     }
                 }
@@ -160,7 +169,10 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .border(5.dp, White, RectangleShape)
                             .background(Black.copy(alpha = 0.7f))
-                            .clickable { launcher.launch(arrayOf("image/*")) }
+                            .clickable { 
+                                com.au.launcher.utils.SoundHelper.playClick()
+                                launcher.launch(arrayOf("image/*")) 
+                            }
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -211,7 +223,10 @@ fun SettingsScreen(
                                                 color = if (maskColorInt == color.toArgb()) Highlight else White,
                                                 shape = RectangleShape
                                             )
-                                            .clickable { viewModel.setMaskColor(color.toArgb()) }
+                                            .clickable { 
+                                                com.au.launcher.utils.SoundHelper.playSwitch()
+                                                viewModel.setMaskColor(color.toArgb()) 
+                                            }
                                     )
                                 }
                             }
@@ -223,7 +238,10 @@ fun SettingsScreen(
                             fontSize = 12.sp,
                             fontFamily = FzxsFontFamily,
                             modifier = Modifier
-                                .clickable { viewModel.setBgImage(null) }
+                                .clickable { 
+                                    com.au.launcher.utils.SoundHelper.playClick()
+                                    viewModel.setBgImage(null) 
+                                }
                                 .padding(vertical = 8.dp)
                         )
                     }
@@ -291,7 +309,10 @@ fun LanguageButton(text: String, isActive: Boolean, onClick: () -> Unit) {
         modifier = Modifier
             .border(5.dp, if (isActive) Highlight else White, RectangleShape)
             .background(Black.copy(alpha = 0.7f))
-            .clickable { onClick() }
+            .clickable { 
+                com.au.launcher.utils.SoundHelper.playClick()
+                onClick() 
+            }
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Text(

@@ -10,9 +10,10 @@ object Constants {
         "https://github.com/znm2500/AUL-Mobile-Repo/releases/download/"
 
     // China Mirror (GitCode)
-    const val BASE_URL_CN = "https://gitcode.com/znm2500/AUL-Mobile-Repo/raw/data/"
+    const val BASE_URL_CN = "https://gitcode.com/znm1145/AUL-Mobile-Repo/raw/data/"
     const val REPO_CONFIG_URL_CN = "config.json"
-    const val IMAGE_BASE_URL_CN = "https://gitcode.com/znm2500/AUL-Mobile-Repo/raw/data/"
+    const val IMAGE_BASE_URL_CN = "https://gitcode.com/znm1145/AUL-Mobile-Repo/raw/data/"
+    const val IMAGE_BASE_URL_CN_API = "https://gitcode.com/api/v5/repos/znm1145/AUL-Mobile-Repo/raw/"
 
     const val DOWNLOAD_URL_CN = "https://gitcode.com/znm1145/AUL-Mobile-Repo/releases/download/"
     

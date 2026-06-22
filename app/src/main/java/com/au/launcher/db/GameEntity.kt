@@ -11,5 +11,6 @@ data class GameEntity(
     val engine: String,
     val packageName: String,
     val coverUri: String?,
+    val hotScore: Int,
     val isLocal: Boolean = true
 )

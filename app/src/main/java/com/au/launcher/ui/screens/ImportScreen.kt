@@ -76,7 +76,8 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
                 author = author.ifBlank { "Unknown" },
                 engine = engine.ifBlank { "Unknown" },
                 packageName = packageName,
-                coverUri = imgUri?.toString() ?: Constants.DEFAULT_COVER
+                coverUri = imgUri?.toString() ?: Constants.DEFAULT_COVER,
+                hotScore = 0,
             )
             repository.addLocalGame(entity)
             showSuccessDialog = true
@@ -156,6 +157,7 @@ fun ImportScreen(
                             interactionSource = interactionSource,
                             indication = null
                         ) {
+                            com.au.launcher.utils.SoundHelper.playConfirm()
                             viewModel.showSuccessDialog = false
                             onBack()
                         }
@@ -195,7 +197,10 @@ fun ImportScreen(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Box(
-                        modifier = Modifier.size(44.dp).border(5.dp, White, RectangleShape).background(Black.copy(alpha = 0.7f)).clickable { onBack() },
+                        modifier = Modifier.size(44.dp).border(5.dp, White, RectangleShape).background(Black.copy(alpha = 0.7f)).clickable { 
+                            com.au.launcher.utils.SoundHelper.playCancel()
+                            onBack() 
+                        },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = White)
@@ -233,7 +238,10 @@ fun ImportScreen(
                         .clickable(
                             interactionSource = appSelectorInteractionSource,
                             indication = null
-                        ) { showAppSelector = true }
+                        ) { 
+                            com.au.launcher.utils.SoundHelper.playSwitch()
+                            showAppSelector = true 
+                        }
                         .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -259,7 +267,10 @@ fun ImportScreen(
                         .fillMaxWidth()
                         .border(5.dp, White, RectangleShape)
                         .background(Black.copy(alpha = 0.7f))
-                        .clickable { viewModel.importGame(errorSelectApp, errorFillName) }
+                        .clickable { 
+                        com.au.launcher.utils.SoundHelper.playConfirm()
+                        viewModel.importGame(errorSelectApp, errorFillName) 
+                    }
                         .padding(16.dp),
                     contentAlignment = Alignment.Center
                 ) {

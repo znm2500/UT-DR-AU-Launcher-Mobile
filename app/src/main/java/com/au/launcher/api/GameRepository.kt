@@ -9,9 +9,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 
 class GameRepository(
-    private val context: Context,
-    private val api: GameApi = RetrofitClient.gameApi
+    private val context: Context
 ) {
+    private val api: GameApi get() = RetrofitClient.gameApi
     private val gson = com.google.gson.GsonBuilder().setPrettyPrinting().create()
     private val PREFS_NAME = "game_cache"
     private val KEY_CONFIG = "cached_config"
@@ -22,30 +22,62 @@ class GameRepository(
     fun getGamesFlow(forceRefresh: Boolean = false): Flow<List<GameModel>> = flow {
         // 1. Emits cached data immediately if it exists
         val cachedConfig = getCachedConfig()
-        if (cachedConfig != null) {
+        if (cachedConfig != null && !forceRefresh) {
+            android.util.Log.d("GameRepository", "Emitting cached config")
             emit(combineWithLocalGames(cachedConfig))
         }
 
-        // 2. Fetch from network if forced or expired or no cache
-        val timestamp = getCacheTimestamp()
-        val isExpired = System.currentTimeMillis() - timestamp > CACHE_DURATION
-        
-        if (forceRefresh || isExpired || cachedConfig == null) {
-            try {
-                val remoteConfig = api.getConfig(Constants.REPO_CONFIG_URL)
-                saveConfig(remoteConfig)
-                emit(combineWithLocalGames(remoteConfig))
-            } catch (e: Exception) {
-                // Network failed, if we haven't emitted anything, emit empty list
-                if (cachedConfig == null) {
-                    emit(combineWithLocalGames(ConfigResponse("", LocalizedString("", ""), LocalizedString("", ""), emptyList())))
+        // 2. Fetch from network
+        try {
+            val remoteConfig = if (Constants.isChinaRegion) {
+                fetchConfigViaGitCode()
+            } else {
+                val relativeUrl = Constants.REPO_CONFIG_URL
+                // Add timestamp to bypass CDN cache
+                val fullUrl = if (relativeUrl.contains("?")) {
+                    "$relativeUrl&t=${System.currentTimeMillis()}"
+                } else {
+                    "$relativeUrl?t=${System.currentTimeMillis()}"
                 }
+                android.util.Log.d("GameRepository", "Fetching remote config from Global URL: ${Constants.BASE_URL}$fullUrl")
+                api.getConfig(fullUrl)
+            }
+
+            android.util.Log.d("GameRepository", "RAW REMOTE CONFIG: $remoteConfig")
+            saveConfig(remoteConfig)
+            emit(combineWithLocalGames(remoteConfig))
+        } catch (e: Exception) {
+            android.util.Log.e("GameRepository", "Network fetch failed", e)
+            if (cachedConfig == null) {
+                emit(combineWithLocalGames(ConfigResponse("", LocalizedString("", ""), LocalizedString("", ""), emptyList())))
             }
         }
     }
 
+    private suspend fun fetchConfigViaGitCode(): ConfigResponse {
+        val owner = "znm1145"
+        val repo = "AUL-Mobile-Repo"
+        val path = "config.json"
+        val branch = "data"
+        val token = com.au.launcher.BuildConfig.GITCODE_TOKEN
+
+        android.util.Log.d("GameRepository", "Fetching config via GitCode API: $owner/$repo/$path")
+        val fileResponse = RetrofitClient.gitCodeApi.getFileV5(owner, repo, path, branch, token.takeIf { it.isNotEmpty() })
+        
+        val contentStr = fileResponse.content.replace("\n", "")
+        val decodedBytes = android.util.Base64.decode(contentStr, android.util.Base64.DEFAULT)
+        val jsonString = String(decodedBytes, Charsets.UTF_8)
+        
+        return gson.fromJson(jsonString, ConfigResponse::class.java)
+    }
+
     private suspend fun combineWithLocalGames(config: ConfigResponse): List<GameModel> {
         val remoteGames = config.games
+        android.util.Log.d("GameRepository", "Combining games. Remote games: ${remoteGames.size}")
+        remoteGames.forEach { 
+            android.util.Log.v("GameRepository", "Remote game: ${it.id}, score: ${it.hotScore}")
+        }
+
         val allLocalEntities = gameDao.getAllLocalGames()
         val validLocalGames = mutableListOf<GameModel>()
         
@@ -57,7 +89,7 @@ class GameRepository(
                         name = LocalizedString(entity.name, entity.name),
                         author = LocalizedString(entity.author, entity.author),
                         engine = entity.engine,
-                        hotScore = 0,
+                        hotScore = entity.hotScore,
                         version = "Local",
                         publishTime = "",
                         localCoverUri = entity.coverUri,
@@ -81,7 +113,7 @@ class GameRepository(
 
         if (forceRefresh || isExpired || cached == null) {
             try {
-                val response = api.getConfig(Constants.REPO_CONFIG_URL)
+                val response = if (Constants.isChinaRegion) fetchConfigViaGitCode() else api.getConfig(Constants.REPO_CONFIG_URL)
                 saveConfig(response)
                 emit(response)
             } catch (e: Exception) {
@@ -107,7 +139,7 @@ class GameRepository(
         }
 
         return try {
-            val response = api.getConfig(Constants.REPO_CONFIG_URL)
+            val response = if (Constants.isChinaRegion) fetchConfigViaGitCode() else api.getConfig(Constants.REPO_CONFIG_URL)
             saveConfig(response)
             response
         } catch (e: Exception) {
@@ -132,10 +164,11 @@ class GameRepository(
     }
 
     suspend fun incrementHotScore(packageName: String) {
+        android.util.Log.d("GameRepository", "incrementHotScore called for $packageName, isChinaRegion: ${Constants.isChinaRegion}")
         if (!Constants.isChinaRegion) return
 
         try {
-            val owner = "znm2500"
+            val owner = "znm1145"
             val repo = "AUL-Mobile-Repo"
             val path = "config.json"
             val branch = "data"
@@ -156,10 +189,12 @@ class GameRepository(
                 // The trigger provides the system packageName. 
                 // We compare it against the game's packageName OR its id (which is often related).
                 val gamePackage = game.packageName ?: PackageUtils.getPackageNameFromId(game.id)
+                android.util.Log.v("GameRepository", "Checking game: ${game.id}, gamePackage: $gamePackage against target: $packageName")
                 if (gamePackage == packageName || game.id == packageName) {
                     found = true
-                    android.util.Log.d("GameRepository", "Found game to increment: ${game.id}")
-                    game.copy(hotScore = game.hotScore + 1)
+                    val newScore = game.hotScore + 1
+                    android.util.Log.d("GameRepository", "Found game to increment: ${game.id}, old score: ${game.hotScore}, new score: $newScore")
+                    game.copy(hotScore = newScore)
                 } else {
                     game
                 }
@@ -177,8 +212,10 @@ class GameRepository(
             }
 
             val updatedConfig = config.copy(games = updatedGames)
-            val updatedJson = gson.toJson(updatedConfig)
-            // Match Rust's formatting: pretty printing and trailing newline
+            // Use a plain Gson instance without pretty printing
+            val compactGson = com.google.gson.Gson()
+            val updatedJson = compactGson.toJson(updatedConfig)
+            // Match Rust's formatting: trailing newline
             val contentWithNewline = updatedJson + "\n"
             val encodedContent = android.util.Base64.encodeToString(
                 contentWithNewline.toByteArray(Charsets.UTF_8),
@@ -234,8 +271,10 @@ class GameRepository(
 
     private fun saveConfig(config: ConfigResponse) {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val json = gson.toJson(config)
+        android.util.Log.d("GameRepository", "Saving config to cache: $json")
         prefs.edit()
-            .putString(KEY_CONFIG, gson.toJson(config))
+            .putString(KEY_CONFIG, json)
             .putLong(KEY_TIMESTAMP, System.currentTimeMillis())
             .apply()
     }

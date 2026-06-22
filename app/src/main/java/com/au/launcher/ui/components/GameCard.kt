@@ -53,13 +53,23 @@ fun GameCard(
     val contentColor = if (isPressed) Highlight else White
 
     // 定义备用 URL 列表（按优先级）
-    val fallbackUrls = remember(id, coverUrl) {
+    val fallbackUrls = remember(id, coverUrl, Constants.isChinaRegion) {
         val list = mutableListOf<String>()
         if (!coverUrl.isNullOrEmpty()) {
             list.add(coverUrl)
         }
-        list.add("${Constants.IMAGE_BASE_URL_GLOBAL}${id}.webp")
-        list.add("${Constants.IMAGE_BASE_URL_CN}${id}.webp")
+        
+        if (Constants.isChinaRegion) {
+            // 中国区：优先使用 API 接口（带 Token，最稳定），其次是直链，最后是全球 CDN
+            val token = com.au.launcher.BuildConfig.GITCODE_TOKEN
+            list.add("${Constants.IMAGE_BASE_URL_CN_API}${id}.webp?ref=data&access_token=$token")
+            list.add("${Constants.IMAGE_BASE_URL_CN}${id}.webp")
+            list.add("${Constants.IMAGE_BASE_URL_GLOBAL}${id}.webp")
+        } else {
+            // 全球区：优先使用 jsdelivr，其次是 GitCode
+            list.add("${Constants.IMAGE_BASE_URL_GLOBAL}${id}.webp")
+            list.add("${Constants.IMAGE_BASE_URL_CN}${id}.webp")
+        }
         list
     }
 
@@ -73,7 +83,10 @@ fun GameCard(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
                 onClick = {},
-                onLongClick = if (isLocal) onRemoveClick else null
+                onLongClick = if (isLocal) { {
+                    com.au.launcher.utils.SoundHelper.playConfirm()
+                    onRemoveClick?.invoke()
+                } } else null
             )
     ) {
         // Cover 区域：带 fallback 的图片
@@ -140,7 +153,10 @@ fun GameCard(
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null // 保持无涟漪效果（原样）
-                    ) { onActionClick() },
+                    ) { 
+                        com.au.launcher.utils.SoundHelper.playClick()
+                        onActionClick() 
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 // Progress background
@@ -186,11 +202,11 @@ private fun FallbackImage(
     contentScale: ContentScale = ContentScale.Fit,
 ) {
     val context = LocalContext.current
+    // 使用 rememberSaveable 保持索引，防止列表滚动时重置
     var currentIndex by remember(urls) { mutableIntStateOf(0) }
     val currentUrl = urls.getOrNull(currentIndex)
 
     if (currentUrl == null) {
-        // 所有 URL 均失败，显示本地默认图片
         androidx.compose.foundation.Image(
             painter = painterResource(defaultResId),
             contentDescription = contentDescription,
@@ -198,13 +214,19 @@ private fun FallbackImage(
             contentScale = contentScale
         )
     } else {
+        val cacheKey = remember(currentUrl) { currentUrl.substringBefore("?") }
         val model = remember(currentUrl) {
             ImageRequest.Builder(context)
                 .data(currentUrl)
-                .crossfade(true)
+                .diskCacheKey(cacheKey)
+                .memoryCacheKey(cacheKey)
+                .placeholderMemoryCacheKey(cacheKey) // 关键：如果内存有，直接用作占位
+                .allowHardware(false) // 某些设备上硬件位图会导致闪烁
                 .listener(
                     onError = { _, _ ->
-                        currentIndex++
+                        if (currentIndex < urls.size - 1) {
+                            currentIndex++
+                        }
                     }
                 )
                 .build()
@@ -215,8 +237,10 @@ private fun FallbackImage(
             contentDescription = contentDescription,
             modifier = modifier,
             contentScale = contentScale,
+            // 只有在内存/磁盘都没有时才降级到默认图
             placeholder = painterResource(R.drawable.ic_default_cover),
-            error = painterResource(defaultResId)
+            error = painterResource(defaultResId),
+            filterQuality = androidx.compose.ui.graphics.FilterQuality.Low // 提升滚动性能
         )
     }
 }

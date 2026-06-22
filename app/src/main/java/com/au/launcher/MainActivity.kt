@@ -14,18 +14,25 @@ import com.au.launcher.ui.screens.ImportScreen
 import com.au.launcher.ui.screens.SettingsScreen
 import com.au.launcher.ui.screens.UploadScreen
 import com.au.launcher.ui.theme.AULauncherTheme
+import com.au.launcher.utils.SoundHelper
 import com.au.launcher.viewmodel.GameViewModel
 import com.au.launcher.viewmodel.SettingsViewModel
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        SoundHelper.init(this)
         enableEdgeToEdge()
         setContent {
             AULauncherTheme {
                 AppNavigation()
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        SoundHelper.release()
     }
 }
 

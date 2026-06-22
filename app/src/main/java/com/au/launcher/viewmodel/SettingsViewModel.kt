@@ -39,6 +39,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             val hasSavedLang = prefs.contains("language")
             
+            // Initialize IP Region Helper
+            com.au.launcher.utils.IpRegionHelper.init(getApplication())
+            
             // Detect region
             val isCN = NetworkUtils.isNetworkInChina()
             Constants.isChinaRegion = isCN

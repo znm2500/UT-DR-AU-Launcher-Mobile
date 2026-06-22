@@ -27,7 +27,7 @@ data class GameModel(
     val name: LocalizedString,
     val author: LocalizedString,
     val engine: String,
-    @SerializedName("hot_score") val hotScore: Int,
+    @SerializedName(value = "hot_score", alternate = ["hotscore", "hotScore"]) val hotScore: Int,
     val version: String,
     @SerializedName("publish_time") val publishTime: String,
     val uploadTarget: String? = null,

@@ -105,10 +105,12 @@ fun HomeScreen(
             confirmText = stringResource(R.string.ok),
             secondaryText = stringResource(R.string.cancel),
             onConfirm = {
+                com.au.launcher.utils.SoundHelper.playConfirm()
                 viewModel.removeLocalGame(gameIdToRemove!!)
                 gameIdToRemove = null
             },
             onSecondary = {
+                com.au.launcher.utils.SoundHelper.playCancel()
                 gameIdToRemove = null
             }
         )
@@ -243,7 +245,10 @@ fun PixelDialogButton(text: String, onClick: () -> Unit) {
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = onClick
+                onClick = {
+                    com.au.launcher.utils.SoundHelper.playClick()
+                    onClick()
+                }
             )
             .padding(horizontal = 16.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
@@ -359,7 +364,10 @@ fun HomeScreenContent(
                                 .clickable(
                                     interactionSource = interactionSource,
                                     indication = null
-                                ) { onCategorySelect(id) }
+                                ) { 
+                                    com.au.launcher.utils.SoundHelper.playSwitch()
+                                    onCategorySelect(id) 
+                                }
                                 .padding(horizontal = 14.dp, vertical = 6.dp)
                         ) {
                             Text(
