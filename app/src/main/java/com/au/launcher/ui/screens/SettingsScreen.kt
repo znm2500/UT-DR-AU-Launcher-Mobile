@@ -42,6 +42,7 @@ fun SettingsScreen(
     val bgBlur by viewModel.bgBlur.collectAsState()
     val bgOpacity by viewModel.bgOpacity.collectAsState()
     val maskColorInt by viewModel.maskColor.collectAsState()
+    val deleteAfterInstall by viewModel.deleteAfterInstall.collectAsState()
     
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -243,6 +244,37 @@ fun SettingsScreen(
                                     viewModel.setBgImage(null) 
                                 }
                                 .padding(vertical = 8.dp)
+                        )
+                    }
+                }
+
+                // Download Settings
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    SettingsLabel(stringResource(R.string.settings_download))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(5.dp, White, RectangleShape)
+                            .background(Black.copy(alpha = 0.7f))
+                            .clickable { 
+                                com.au.launcher.utils.SoundHelper.playSwitch()
+                                viewModel.setDeleteAfterInstall(!deleteAfterInstall) 
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = stringResource(R.string.delete_after_install),
+                            color = White,
+                            fontSize = 14.sp,
+                            fontFamily = FzxsFontFamily
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .border(3.dp, if (deleteAfterInstall) Highlight else White, RectangleShape)
+                                .background(if (deleteAfterInstall) Highlight else Color.Transparent)
                         )
                     }
                 }

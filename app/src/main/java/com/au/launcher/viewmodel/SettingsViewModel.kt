@@ -34,6 +34,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _maskColor = MutableStateFlow(prefs.getInt("mask_color", 0xFF000000.toInt()))
     val maskColor: StateFlow<Int> = _maskColor
 
+    private val _deleteAfterInstall = MutableStateFlow(prefs.getBoolean("delete_after_install", true))
+    val deleteAfterInstall: StateFlow<Boolean> = _deleteAfterInstall
+
     init {
         // Apply saved language or detect
         viewModelScope.launch {
@@ -75,6 +78,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setMaskColor(color: Int) {
         _maskColor.value = color
         prefs.edit().putInt("mask_color", color).apply()
+    }
+
+    fun setDeleteAfterInstall(enabled: Boolean) {
+        _deleteAfterInstall.value = enabled
+        prefs.edit().putBoolean("delete_after_install", enabled).apply()
     }
 
     fun setLanguage(lang: String, save: Boolean = true) {

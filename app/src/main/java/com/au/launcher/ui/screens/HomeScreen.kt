@@ -90,10 +90,14 @@ fun HomeScreen(
             content = updateToShow!!.updateLog.get(language),
             confirmText = stringResource(R.string.ok),
             secondaryText = stringResource(R.string.download),
+            dismissText = "不再提示",
             onConfirm = { viewModel.dismissUpdate() },
             onSecondary = {
                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(Constants.UPDATE_PAGE_URL))
                 context.startActivity(intent)
+            },
+            onDismiss = {
+                viewModel.neverShowUpdateAgain(updateToShow!!.newestVersion)
             }
         )
     }
@@ -151,8 +155,10 @@ fun PixelDialog(
     content: String,
     confirmText: String,
     secondaryText: String? = null,
+    dismissText: String? = null,
     onConfirm: () -> Unit,
-    onSecondary: (() -> Unit)? = null
+    onSecondary: (() -> Unit)? = null,
+    onDismiss: (() -> Unit)? = null
 ) {
     Dialog(onDismissRequest = {}) {
         PixelDialogContent(
@@ -160,8 +166,10 @@ fun PixelDialog(
             content = content,
             confirmText = confirmText,
             secondaryText = secondaryText,
+            dismissText = dismissText,
             onConfirm = onConfirm,
-            onSecondary = onSecondary
+            onSecondary = onSecondary,
+            onDismiss = onDismiss
         )
     }
 }
@@ -172,8 +180,10 @@ fun PixelDialogContent(
     content: String,
     confirmText: String,
     secondaryText: String? = null,
+    dismissText: String? = null,
     onConfirm: () -> Unit,
-    onSecondary: (() -> Unit)? = null
+    onSecondary: (() -> Unit)? = null,
+    onDismiss: (() -> Unit)? = null
 ) {
     Box(
         modifier = Modifier
@@ -203,6 +213,9 @@ fun PixelDialogContent(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
             ) {
+                if (dismissText != null && onDismiss != null) {
+                    PixelDialogButton(text = dismissText, onClick = onDismiss)
+                }
                 if (secondaryText != null && onSecondary != null) {
                     PixelDialogButton(text = secondaryText, onClick = onSecondary)
                 }

@@ -237,6 +237,13 @@ class DownloadManager(private val context: Context) {
             return
         }
 
+        // Store mapping for cleanup after install
+        val packageName = PackageUtils.getPackageNameFromId(gameId)
+        context.getSharedPreferences("install_cleanup", Context.MODE_PRIVATE)
+            .edit()
+            .putString(packageName, filePath)
+            .apply()
+
         try {
             val uri = FileProvider.getUriForFile(
                 context,

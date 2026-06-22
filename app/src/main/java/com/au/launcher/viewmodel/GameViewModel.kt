@@ -68,13 +68,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         val lastAnnEn = prefs.getString("last_ann_en", "")
         val lastAnnZh = prefs.getString("last_ann_zh", "")
         val lastVersion = prefs.getString("last_version", "")
-        val currentVersion = PackageUtils.getAppVersionName(getApplication())
 
         if (config.announcement.en != lastAnnEn || config.announcement.zh != lastAnnZh) {
             _announcementToShow.value = config.announcement
         }
 
-        if (config.newestVersion != currentVersion && config.newestVersion != lastVersion) {
+        if (config.newestVersion != lastVersion) {
             _updateToShow.value = config
         }
     }
@@ -98,6 +97,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         _updateToShow.value = null
     }
 
+    fun neverShowUpdateAgain(version: String) {
+        prefs.edit()
+            .putString("last_version", version)
+            .apply()
+        _updateToShow.value = null
+    }
+
     private fun observePackageChanges() {
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_PACKAGE_ADDED)
@@ -118,6 +124,22 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                             repository.incrementHotScore(packageName)
                             // Force refresh from network after incrementing
                             refreshGames(force = true)
+                        }
+                    }
+                    
+                    // Cleanup APK if enabled
+                    val settingsPrefs = getApplication<Application>().getSharedPreferences("settings", Context.MODE_PRIVATE)
+                    val deleteAfterInstall = settingsPrefs.getBoolean("delete_after_install", true)
+                    if (deleteAfterInstall) {
+                        val cleanupPrefs = getApplication<Application>().getSharedPreferences("install_cleanup", Context.MODE_PRIVATE)
+                        val apkPath = cleanupPrefs.getString(packageName, null)
+                        if (apkPath != null) {
+                            val file = java.io.File(apkPath)
+                            if (file.exists()) {
+                                val deleted = file.delete()
+                                android.util.Log.d("GameViewModel", "Deleted APK after install: $apkPath, success: $deleted")
+                            }
+                            cleanupPrefs.edit().remove(packageName).apply()
                         }
                     }
                 }
@@ -193,9 +215,8 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 rawGames = games
                 applyFilters()
                 // Initial check for dialogs when first data arrives
-                if (_announcementToShow.value == null && _updateToShow.value == null) {
-                    if (config != null) checkForDialogs(config)
-                }
+                if (config != null) checkForDialogs(config)
+
                 _isLoading.value = false
             }
         }
