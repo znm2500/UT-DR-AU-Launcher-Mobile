@@ -6,10 +6,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -19,6 +22,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -306,7 +310,17 @@ fun HomeScreenContent(
         "HOT" to stringResource(R.string.tab_hot),
         "NEW" to stringResource(R.string.tab_new)
     )
-    val listState = rememberLazyListState()
+    
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp
+    val columns = when {
+        screenWidth >= 1200 -> 4
+        screenWidth >= 900 -> 3
+        screenWidth >= 600 -> 2
+        else -> 1
+    }
+    
+    val listState = rememberLazyGridState()
 
     val shouldLoadMore = remember(games.size, hasMore, isMoreLoading, isLoading) {
         derivedStateOf {
@@ -395,13 +409,15 @@ fun HomeScreenContent(
                 }
 
                 // Game List
-                LazyColumn(
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(columns),
                     state = listState,
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.weight(1f),
                 ) {
                     if (isLoading && games.isEmpty()) {
-                        item {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -420,7 +436,7 @@ fun HomeScreenContent(
                     }
 
                     if (!isLoading && games.isEmpty()) {
-                        item {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -464,12 +480,13 @@ fun HomeScreenContent(
                             },
                             onRemoveClick = {
                                 onRemoveLocal(game.id)
-                            }
+                            },
+                            modifier = Modifier.padding(bottom = 12.dp)
                         )
                     }
 
                     if (isMoreLoading) {
-                        item {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -486,7 +503,7 @@ fun HomeScreenContent(
                             }
                         }
                     } else if (hasMore) {
-                        item {
+                        item(span = { GridItemSpan(maxLineSpan) }) {
                             Text(
                                 text = stringResource(R.string.scroll_to_load_more),
                                 color = DimText,
@@ -500,7 +517,7 @@ fun HomeScreenContent(
                         }
                     }
 
-                    item {
+                    item(span = { GridItemSpan(maxLineSpan) }) {
                         Spacer(modifier = Modifier.height(20.dp))
                     }
                 }

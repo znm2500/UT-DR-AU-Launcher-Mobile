@@ -31,9 +31,16 @@ data class GameModel(
     val version: String,
     @SerializedName("publish_time") val publishTime: String,
     val uploadTarget: String? = null,
+    
+    @Transient
     val localized: Boolean = false,
+    
     // Local import fields
+    @Transient
     val isLocal: Boolean = false,
+    
+    @Transient
     val localCoverUri: String? = null,
+
     val packageName: String? = null
 )
