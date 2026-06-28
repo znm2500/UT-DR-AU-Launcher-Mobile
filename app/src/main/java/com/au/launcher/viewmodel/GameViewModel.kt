@@ -23,7 +23,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = GameRepository(application)
     private var rawGames: List<GameModel> = emptyList()
     private var filteredGames: List<GameModel> = emptyList()
-    private val downloadManager = DownloadManager(application)
+    private val downloadManager = com.au.launcher.utils.DownloadManager.getInstance(application)
     private val prefs = application.getSharedPreferences("dialog_prefs", Context.MODE_PRIVATE)
 
     private val _pagedGames = MutableStateFlow<List<GameModel>>(emptyList())
@@ -196,6 +196,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private fun toggleDownload(gameId: String, game: GameModel) {
         val currentState = downloadManager.getDownloadState(gameId)
         android.util.Log.d("GameViewModel", "toggleDownload: $gameId, currentState: $currentState")
+        
+        val settingsPrefs = getApplication<Application>().getSharedPreferences("settings", Context.MODE_PRIVATE)
+        val backgroundDownload = settingsPrefs.getBoolean("background_download", true)
 
         when {
             currentState?.isDownloading == true -> {
@@ -205,13 +208,35 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             currentState?.isPaused == true -> {
                 val downloadUrl = "${com.au.launcher.utils.Constants.DOWNLOAD_URL}v${game.version}/${gameId}.apk"
                 android.util.Log.d("GameViewModel", "Resuming download: $downloadUrl")
-                downloadManager.startDownload(gameId, downloadUrl, "$gameId.apk")
+                if (backgroundDownload) {
+                    startDownloadService(gameId, downloadUrl, "$gameId.apk")
+                } else {
+                    downloadManager.startDownload(gameId, downloadUrl, "$gameId.apk")
+                }
             }
             else -> {
                 val downloadUrl = "${com.au.launcher.utils.Constants.DOWNLOAD_URL}v${game.version}/${gameId}.apk"
                 android.util.Log.d("GameViewModel", "Starting new download: $downloadUrl")
-                downloadManager.startDownload(gameId, downloadUrl, "$gameId.apk")
+                if (backgroundDownload) {
+                    startDownloadService(gameId, downloadUrl, "$gameId.apk")
+                } else {
+                    downloadManager.startDownload(gameId, downloadUrl, "$gameId.apk")
+                }
             }
+        }
+    }
+
+    private fun startDownloadService(gameId: String, url: String, fileName: String) {
+        val intent = Intent(getApplication(), com.au.launcher.service.DownloadService::class.java).apply {
+            action = com.au.launcher.service.DownloadService.ACTION_START_DOWNLOAD
+            putExtra(com.au.launcher.service.DownloadService.EXTRA_GAME_ID, gameId)
+            putExtra(com.au.launcher.service.DownloadService.EXTRA_URL, url)
+            putExtra(com.au.launcher.service.DownloadService.EXTRA_FILE_NAME, fileName)
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            getApplication<Application>().startForegroundService(intent)
+        } else {
+            getApplication<Application>().startService(intent)
         }
     }
 

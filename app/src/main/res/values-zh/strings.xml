@@ -58,4 +58,10 @@
     <string name="cancel">取消</string>
     <string name="settings_download">下载设置</string>
     <string name="delete_after_install">安装后删除安装包</string>
+    <string name="background_download">后台下载</string>
+    <string name="download_notification_channel">游戏下载</string>
+    <string name="downloading_game">正在下载 %s...</string>
+    <string name="download_complete">下载完成</string>
+    <string name="download_failed">下载失败</string>
+    <string name="click_to_install">点击安装 %s</string>
 </resources>

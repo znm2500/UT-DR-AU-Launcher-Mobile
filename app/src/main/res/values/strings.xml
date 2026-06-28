@@ -58,4 +58,10 @@
     <string name="cancel">CANCEL</string>
     <string name="settings_download">DOWNLOAD SETTINGS</string>
     <string name="delete_after_install">DELETE APK AFTER INSTALLATION</string>
+    <string name="background_download">BACKGROUND DOWNLOAD</string>
+    <string name="download_notification_channel">Game Downloads</string>
+    <string name="downloading_game">Downloading %s...</string>
+    <string name="download_complete">Download Complete</string>
+    <string name="download_failed">Download Failed</string>
+    <string name="click_to_install">Click to install %s</string>
 </resources>

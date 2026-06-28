@@ -43,6 +43,7 @@ fun SettingsScreen(
     val bgOpacity by viewModel.bgOpacity.collectAsState()
     val maskColorInt by viewModel.maskColor.collectAsState()
     val deleteAfterInstall by viewModel.deleteAfterInstall.collectAsState()
+    val backgroundDownload by viewModel.backgroundDownload.collectAsState()
     
     val context = LocalContext.current
     val scrollState = rememberScrollState()
@@ -275,6 +276,33 @@ fun SettingsScreen(
                                 .size(24.dp)
                                 .border(3.dp, if (deleteAfterInstall) Highlight else White, RectangleShape)
                                 .background(if (deleteAfterInstall) Highlight else Color.Transparent)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(5.dp, White, RectangleShape)
+                            .background(Black.copy(alpha = 0.7f))
+                            .clickable { 
+                                com.au.launcher.utils.SoundHelper.playSwitch()
+                                viewModel.setBackgroundDownload(!backgroundDownload) 
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = stringResource(R.string.background_download),
+                            color = White,
+                            fontSize = 14.sp,
+                            fontFamily = FzxsFontFamily
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .border(3.dp, if (backgroundDownload) Highlight else White, RectangleShape)
+                                .background(if (backgroundDownload) Highlight else Color.Transparent)
                         )
                     }
                 }

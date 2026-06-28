@@ -37,6 +37,9 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _deleteAfterInstall = MutableStateFlow(prefs.getBoolean("delete_after_install", true))
     val deleteAfterInstall: StateFlow<Boolean> = _deleteAfterInstall
 
+    private val _backgroundDownload = MutableStateFlow(prefs.getBoolean("background_download", true))
+    val backgroundDownload: StateFlow<Boolean> = _backgroundDownload
+
     init {
         // Apply saved language or detect
         viewModelScope.launch {
@@ -83,6 +86,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     fun setDeleteAfterInstall(enabled: Boolean) {
         _deleteAfterInstall.value = enabled
         prefs.edit().putBoolean("delete_after_install", enabled).apply()
+    }
+
+    fun setBackgroundDownload(enabled: Boolean) {
+        _backgroundDownload.value = enabled
+        prefs.edit().putBoolean("background_download", enabled).apply()
     }
 
     fun setLanguage(lang: String, save: Boolean = true) {

@@ -34,7 +34,18 @@ data class DownloadState(
 
 private class PauseException : IOException("Download paused")
 
-class DownloadManager(private val context: Context) {
+class DownloadManager private constructor(private val context: Context) {
+
+    companion object {
+        @Volatile
+        private var INSTANCE: DownloadManager? = null
+
+        fun getInstance(context: Context): DownloadManager {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: DownloadManager(context.applicationContext).also { INSTANCE = it }
+            }
+        }
+    }
 
     private val _downloadStates = MutableStateFlow<Map<String, DownloadState>>(emptyMap())
     val downloadStates: StateFlow<Map<String, DownloadState>> = _downloadStates
